@@ -1,12 +1,24 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.ComponentModel;
 
 namespace ProcessManager.Models
 {
-    internal class CpuCoreInfo
+    public class CpuCoreInfo : INotifyPropertyChanged
     {
+        private bool _isEnabled;
+
+        public int CoreNumber { get; set; }
+
+        public bool IsEnabled
+        {
+            get => _isEnabled;
+            set
+            {
+                _isEnabled = value;
+                PropertyChanged?.Invoke(this,
+                    new PropertyChangedEventArgs(nameof(IsEnabled)));
+            }
+        }
+
+        public event PropertyChangedEventHandler PropertyChanged;
     }
 }

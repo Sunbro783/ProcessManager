@@ -3,10 +3,204 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:ProcessManager"
+        xmlns:lvc="clr-namespace:LiveCharts.Wpf;assembly=LiveCharts.Wpf"
+        xmlns:vm="clr-namespace:ProcessManager.ViewModels"
+        xmlns:conv="clr-namespace:ProcessManager.Converters"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
+        Title="Process Manager"
+        Height="900"
+        Width="1500"
+        WindowStartupLocation="CenterScreen">
+
+    <Window.Resources>
+        <conv:PriorityToBrushConverter x:Key="PriorityBrush"/>
+    </Window.Resources>
+
+    <Window.DataContext>
+        <vm:MainViewModel/>
+    </Window.DataContext>
+
     <Grid>
-        
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="3*"/>
+            <RowDefinition Height="2*"/>
+        </Grid.RowDefinitions>
+
+        <!-- ===== Панель управления ===== -->
+        <StackPanel Orientation="Horizontal" Margin="10">
+
+            <TextBox Width="200"
+         Margin="5"
+         Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+         ToolTip="Поиск по имени"/>
+
+            <CheckBox Content="Только GUI"
+                      Margin="5"
+                      IsChecked="{Binding OnlyGUI}"/>
+
+            <CheckBox Content="Только системные"
+                      Margin="5"
+                      IsChecked="{Binding OnlySystem}"/>
+
+
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+    <TextBlock Text="Интервал обновления:"
+               VerticalAlignment="Center"
+               Margin="0,-7,8,0"/>
+
+    <ComboBox Width="100"
+              ItemsSource="{Binding RefreshIntervals}"
+              SelectedItem="{Binding RefreshInterval}"
+              HorizontalContentAlignment="Center">
+        <ComboBox.ItemTemplate>
+            <DataTemplate>
+                <TextBlock Text="{Binding StringFormat={}{0} сек}"/>
+            </DataTemplate>
+        </ComboBox.ItemTemplate>
+    </ComboBox>
+</StackPanel>
+
+            <Button Content="Завершить процесс"
+                    Margin="5"
+                    Command="{Binding KillCommand}"/>
+
+            <ComboBox Width="150"
+                      Margin="5"
+                      ItemsSource="{Binding PriorityValues}"
+                      SelectedItem="{Binding SelectedProcess.Priority}"/>
+
+            <Button Content="Изменить приоритет"
+                    Margin="5"
+                    Command="{Binding ChangePriorityCommand}"/>
+
+        </StackPanel>
+
+        <!-- ===== Список процессов ===== -->
+        <DataGrid Grid.Row="1"
+                  ItemsSource="{Binding Processes}"
+                  SelectedItem="{Binding SelectedProcess, Mode=TwoWay}"
+                  AutoGenerateColumns="False"
+                  IsReadOnly="True"
+                  Margin="10">
+
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="PID" Binding="{Binding Id}" Width="70"/>
+                <DataGridTextColumn Header="Имя" Binding="{Binding Name}" Width="150"/>
+                <DataGridTextColumn Header="Приоритет" Binding="{Binding Priority}" Width="120"/>
+                <DataGridTextColumn Header="Память (MB)" Binding="{Binding MemoryMB}" Width="120"/>
+                <DataGridTextColumn Header="CPU Time" Binding="{Binding CpuTime}" Width="150"/>
+                <DataGridTextColumn Header="Потоки" Binding="{Binding ThreadCount}" Width="80"/>
+            </DataGrid.Columns>
+
+            <DataGrid.RowStyle>
+                <Style TargetType="DataGridRow">
+                    <Setter Property="Background"
+                            Value="{Binding Priority, Converter={StaticResource PriorityBrush}}"/>
+                </Style>
+            </DataGrid.RowStyle>
+
+        </DataGrid>
+
+        <!-- ===== Нижняя часть ===== -->
+        <Grid Grid.Row="2" Margin="10">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="2*"/>
+                <ColumnDefinition Width="2*"/>
+                <ColumnDefinition Width="2*"/>
+                <ColumnDefinition Width="2*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Потоки + CPU Affinity -->
+            <Grid Grid.Column="0" Margin="5">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="2*"/>
+                    <RowDefinition Height="1*"/>
+                </Grid.RowDefinitions>
+
+                <!-- Потоки -->
+                <GroupBox Header="Потоки" Grid.Row="0" Margin="2">
+                    <DataGrid ItemsSource="{Binding Threads}"
+                  AutoGenerateColumns="False"
+                  IsReadOnly="True">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Thread ID" Binding="{Binding Id}"/>
+                            <DataGridTextColumn Header="Priority" Binding="{Binding Priority}"/>
+                            <DataGridTextColumn Header="State" Binding="{Binding State}"/>
+                            <DataGridTextColumn Header="CPU Time" Binding="{Binding ProcessorTime}"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </GroupBox>
+
+                <!-- CPU Affinity -->
+                <GroupBox Header="CPU Affinity"
+              Grid.Row="1"
+              Margin="2">
+
+                    <ItemsControl ItemsSource="{Binding CpuCores}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel/>
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <CheckBox Content="{Binding CoreNumber}"
+                              IsChecked="{Binding IsEnabled, Mode=TwoWay}"
+                              Margin="4"/>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                </GroupBox>
+            </Grid>
+
+            <!-- Дерево процессов -->
+            <GroupBox Header="Иерархия процессов" Grid.Column="1" Margin="5">
+                <TreeView ItemsSource="{Binding ProcessTree}">
+                    <TreeView.ItemTemplate>
+                        <HierarchicalDataTemplate ItemsSource="{Binding Children}">
+                            <TextBlock>
+                                <Run Text="{Binding Process.Name}"/>
+                                <Run Text=" ("/>
+                                <Run Text="{Binding Process.Id}"/>
+                                <Run Text=")"/>
+                            </TextBlock>
+                        </HierarchicalDataTemplate>
+                    </TreeView.ItemTemplate>
+                </TreeView>
+            </GroupBox>
+
+            <!-- CPU график -->
+            <GroupBox Header="Загрузка CPU по ядрам" Grid.Column="2" Margin="5">
+                <lvc:CartesianChart Series="{Binding CpuSeries}"
+                    AxisX="{Binding CpuAxisX}"
+                    AxisY="{Binding CpuAxisY}"
+                    AnimationsSpeed="0:0:0"
+                    Hoverable="True">
+
+                    <lvc:CartesianChart.DataTooltip>
+                        <lvc:DefaultTooltip SelectionMode="OnlySender"/>
+                    </lvc:CartesianChart.DataTooltip>
+
+                </lvc:CartesianChart>
+            </GroupBox>
+
+            <!-- Память -->
+            <GroupBox Header="Top-10 по памяти" Grid.Column="3" Margin="5">
+                <lvc:PieChart Series="{Binding MemorySeries}"
+              AnimationsSpeed="0:0:0"
+              Hoverable="True">
+
+                    <lvc:PieChart.DataTooltip>
+                        <lvc:DefaultTooltip/>
+                    </lvc:PieChart.DataTooltip>
+
+                </lvc:PieChart>
+            </GroupBox>
+
+        </Grid>
+
     </Grid>
 </Window>

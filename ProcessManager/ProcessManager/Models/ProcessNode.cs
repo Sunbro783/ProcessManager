@@ -1,12 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Collections.ObjectModel;
 
 namespace ProcessManager.Models
 {
-    internal class ProcessNode
+    public class ProcessNode
     {
+        public ProcessInfo Process { get; set; }
+        public ObservableCollection<ProcessNode> Children { get; set; }
+            = new ObservableCollection<ProcessNode>();
     }
 }

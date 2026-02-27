@@ -1,12 +1,20 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace ProcessManager.Services
 {
-    internal class AffinityHelper
+    public static class AffinityHelper
     {
+        public static IntPtr CreateMask(bool[] cores)
+        {
+            long mask = 0;
+            for (int i = 0; i < cores.Length; i++)
+                if (cores[i]) mask |= (1L << i);
+            return new IntPtr(mask);
+        }
+
+        public static bool IsCoreEnabled(IntPtr mask, int index)
+        {
+            return (mask.ToInt64() & (1L << index)) != 0;
+        }
     }
 }
